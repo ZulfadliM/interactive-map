@@ -1,0 +1,206 @@
+<!DOCTYPE HTML>
+<div id='map'></div>
+
+<div class='map-overlay' id='title'>
+  <h2>Building Height By Status</h2>
+
+</div>
+
+<!-- Legend for 3D layer-->
+<div id='legend' class='legend'>
+  <h4>Building Status</h4>
+</div>
+
+<!-- Legend for 2D Layer-->
+<div id='legend2' class='legend'>
+  <h4>Building Status and Floors</h4>
+</div>
+
+  <!-- Radio Button-->
+<div id="menu">
+  <input id="cl383dr3l000y15s6mapo40p3" type="radio" name="rtoggle" value="3d" checked="checked">
+  <label for="cl383dr3l000y15s6mapo40p3">3D Layer</label>
+  <br>
+  <input id="cl2y1mdja003h15lddabllz9g" type="radio" name="rtoggle" value="points">
+  <label for="cl2y1mdja003h15lddabllz9g">2D Layer</label>
+</div>
+
+<script>
+mapboxgl.accessToken = 'pk.eyJ1IjoiemZhZGxpIiwiYSI6ImNsMGV6ZGtxeDBseWYzams5bzV0cHBpMGkifQ.HUrnKZlx2Zoq4CgjaV8rCw';
+
+//load basemap
+var map = new mapboxgl.Map({
+  container: 'map',
+  style: 'mapbox://styles/zfadli/cl383dr3l000y15s6mapo40p3',
+});
+
+
+var statusNames = ['APPLIED', 'APPROVED', 'UNDER CONSTRUCTION', 'COMPLETED'];
+var circleColors = ['#ffffcc', '#c2e699', '#78c679', '#238443'];
+var circleRadius = [2, 3, 4.5, 6.5, 9, 12];
+var buildingHeights = [0, 5, 15, 30, 50, 75];
+
+
+//set variable for toggling layers
+const layerList = document.getElementById('menu');
+const inputs = layerList.getElementsByTagName('input');
+
+//set legend correspondingly
+for (i = 0; i < statusNames.length; i++) {
+  var statusName = statusNames[i];
+  var circleColor = circleColors[i];
+  var item = document.createElement('div');
+  item.className = 'legend-status';
+  var key = document.createElement('span');
+  key.className = 'legend-circle';
+  key.style.backgroundColor = circleColor;
+  key.style.width = '10px';
+  key.style.height = '10px';
+  var value = document.createElement('span');
+  value.innerHTML = statusName;
+  item.appendChild(key);
+  item.appendChild(value);
+  legend.appendChild(item);
+}
+
+for (i = 0; i < statusNames.length; i++) {
+  var statusName = statusNames[i];
+  var circleColor = circleColors[i];
+  var item = document.createElement('div');
+  item.className = 'legend-status';
+  var key = document.createElement('span');
+  key.className = 'legend-circle';
+  key.style.backgroundColor = circleColor;
+  key.style.width = '10px';
+  key.style.height = '10px';
+  var value = document.createElement('span');
+  value.innerHTML = statusName;
+  item.appendChild(key);
+  item.appendChild(value);
+  legend2.appendChild(item);
+}
+
+for (i = 0; i < buildingHeights.length; i++) {
+  var buildingHeight = buildingHeights[i];
+  var diameter = circleRadius[i] * 2;
+  var setmargin = 0 + ((20 - diameter) / 2);
+  var item = document.createElement('div');
+  item.className = 'legend-height';
+  var key = document.createElement('span');
+  key.className = 'legend-circle';
+  key.style.width = diameter + 'px';
+  key.style.height = diameter + 'px';
+  key.style.marginLeft = setmargin + 'px';
+  key.style.backgroundColor = '#666666';
+  key.style.opacity = 0.8;
+  var value = document.createElement('span');
+  value.style.marginLeft = setmargin + 10 + 'px';
+  value.innerHTML = '> ' + buildingHeight + ' FLOORS';
+  value.style.backgroundColor = 'white';
+  item.appendChild(key);
+  item.appendChild(value);
+  legend2.appendChild(item);
+  legend2.style.visibility = 'hidden';
+}
+
+//Add navigation function
+map.addControl(new mapboxgl.NavigationControl());
+
+//Change style with radio
+for (const input of inputs) {
+  input.onclick = (stlayer) => {
+    const stlayerId = stlayer.target.id;
+    map.setStyle('mapbox://styles/zfadli/' + stlayerId);
+    alert(stlayerId);
+    var lg2 = document.getElementById('legend2');
+
+    if (stlayerId === 'cl2y1mdja003h15lddabllz9g') {
+      lg2.style.visibility = 'visible';
+      map.setBearing(0)
+        .setPitch(0);
+      map.on('style.load', function() {
+        map.addSource('buildingsource', {
+          type: 'vector',
+          url: 'mapbox://zfadli.2n8nlpe1' // Your Mapbox Tileset Map ID
+        });
+        map.addLayer({ //add data points on map
+          'id': 'buildingpoints',
+          'type': 'circle',
+          'source': 'buildingsource',
+          'source-layer': 'buildingCentroids-496ofb', // the name of your new point layer (see tileset)
+          'minzoom': 11,
+          'layout': {
+            'visibility': 'visible'
+          },
+          paint: {
+            'circle-color': ['match',
+              ['get', 'FIRST_status'],
+              'APPLIED', '#ffffcc',
+              'APPROVED', '#c2e699',
+              'UNDER CONSTRUCTION', '#78c679',
+              'COMPLETED', '#238443',
+              '#ccc' //other//
+            ],
+            'circle-opacity': 0.8,
+            'circle-stroke-width': 1,
+            'circle-stroke-color': '#888888', //mid grey
+            'circle-radius': {
+              property: 'NumFloors',
+              type: 'interval',
+              stops: [
+                [0, 2], // 0 – 4 floors 
+                [5, 3], // 5 – 14 floors (0 + 5)
+                [15, 4.5], // 15 – 29 floors (5 + 10)
+                [30, 6.5], // 30 – 49 floors (15 + 15)
+                [50, 9], // 50 – 74 floors (30 + 20) 
+                [75, 12] // Over 75 floors (50 + 25)
+              ]
+            },
+          }
+        });
+
+        //display building floor numbers on click
+        map.on('click', 'buildingpoints', function(e) {
+          //create popup
+          new mapboxgl.Popup()
+            .setLngLat(e.lngLat)
+            .setHTML("<img src= 'https://i.postimg.cc/Zq73cSyF/1001-Autumn.png' width=173 height=auto>")
+            .addTo(map);
+        });
+        // when mouse is over a point change the curse to a pointer 
+        map.on('mouseenter', 'buildingpoints', function() {
+          map.getCanvas().style.cursor = 'pointer';
+        });
+
+        // Change it back to default map pan cursor
+        map.on('mouseleave', 'buildingpoints', function() {
+          map.getCanvas().style.cursor = '';
+        });
+
+
+      });
+
+
+    } else if (stlayerId === 'cl383dr3l000y15s6mapo40p3') {
+      //hide legend of 2d layer
+      lg2.style.visibility = "hidden";
+
+      map.on('style.load', function() {
+        //remove Layer and Source of Building Points
+        map.getLayer('buildingpoints')
+        map.removeLayer('buildingpoints');
+        map.getSource('buildingsource')
+        map.removeSource('buildingsource');
+      })
+
+      //set bearing and pitch in 3D layer
+      map.setBearing(15)
+        .setPitch(65);
+    }
+  }
+}
+</script>
+
+</body>
+
+</html>
