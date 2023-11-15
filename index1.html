@@ -1,0 +1,124 @@
+<!DOCTYPE HTML>
+<div id='map'></div>
+
+<head>
+<meta charset='utf-8' />
+<script src='https://api.mapbox.com/mapbox-gl-js/v2.8.2/mapbox-gl.js'></script>
+<link href='https://api.mapbox.com/mapbox-gl-js/v2.8.2/mapbox-gl.css' rel='stylesheet' />
+
+<link rel="stylesheet" type="text/css" href="style1.css">
+</head>
+
+<div 
+class='map-overlay' id='legend'>
+  <nav id='button'></nav>
+</div>
+
+<div class='map-overlay' id='title'>
+  <h2>Building Details And Status</h2>
+  <div id='info'>
+    <p>Hover over a building!</p>
+  </div>
+</div>
+
+
+<script>
+mapboxgl.accessToken = 'pk.eyJ1IjoiemZhZGxpIiwiYSI6ImNsMGV6ZGtxeDBseWYzams5bzV0cHBpMGkifQ.HUrnKZlx2Zoq4CgjaV8rCw';
+var map = new mapboxgl.Map({
+  container: 'map',
+  style: 'mapbox://styles/mapbox/dark-v10',
+  center: [144.96, -37.81],
+  zoom: 12
+});
+
+map.on('load', function() {
+  map.addSource('dev-buildings-source', {
+    type: 'vector',
+    url: 'mapbox://zfadli.dg1c66sb'
+  });
+
+  var statusNames = ['APPLIED', 'APPROVED', 'UNDER CONSTRUCTION', 'COMPLETED'];
+
+
+  var statusColors = ['#fa4efd', '#49c4fd', '#f96c62', '#a6fb74'];
+
+
+  for (var i = 0; i < statusNames.length; i++) {
+    var statusName = statusNames[i];
+    var statusColor = statusColors[i];
+
+    var link = document.createElement('a');
+    link.href = '#';
+    link.className = 'active';
+    link.textContent = statusName;
+		link.style.backgroundColor = statusColor;
+
+
+    var layers = document.getElementById('button');
+    layers.appendChild(link);
+
+    link.onclick = function(e) {
+      var clickedLayer = this.textContent;
+      e.preventDefault();
+      e.stopPropagation();
+
+      var visibility = map.getLayoutProperty(clickedLayer, 'visibility');
+
+      if (visibility === 'visible') {
+        map.setLayoutProperty(clickedLayer, 'visibility', 'none');
+        this.className = '';
+
+      } else {
+        this.className = 'active';
+        map.setLayoutProperty(clickedLayer, 'visibility', 'visible');
+      }
+    };
+
+
+
+    map.addLayer({
+      'id': statusName,
+      'type': 'fill',
+      'source': 'dev-buildings-source',
+      'source-layer': 'Development_Activity_Model_Fo-aprbcz',
+      'paint': {
+        "fill-color": statusColor,
+        "fill-outline-color": "#000000"
+      }
+
+    });
+
+    var item = document.createElement('div');
+    var key = document.createElement('span');
+    key.className = 'legend-key';
+    
+
+    var value = document.createElement('span');
+
+    value.innerHTML = statusName;
+    item.appendChild(key);
+    item.appendChild(value);
+    legend.appendChild(item);
+
+    map.setFilter(statusName, ['==', 'status', statusName]);
+
+  }
+
+  //display info by hovering over a building
+  map.on('mousemove', function(i) {
+    var buildinginfo = map.queryRenderedFeatures(i.point, {
+      layers: statusNames
+    });
+
+    if (buildinginfo.length > 0) {
+      document.getElementById('info').innerHTML = '<p>' + buildinginfo[0].properties.status + '</p>' + '<p>' + 'Building Height: ' + buildinginfo[0].properties.bldhgt_ahd + 'm' + '<br>' + 'Number of Floors: ' + buildinginfo[0].properties.num_floors + '</p>';
+    } else {
+      document.getElementById('info').innerHTML = '<p>Hover over a colored building for details.</p>';
+    }
+  });
+});
+</script>
+
+</body>
+
+</html>
